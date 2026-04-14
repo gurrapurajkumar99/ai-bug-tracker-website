@@ -1,0 +1,52 @@
+[
+  {
+    "_id": "65f100000000000000000001",
+    "name": "Admin User",
+    "email": "admin@bugtracker.com",
+    "password": "Admin@123456",
+    "role": "admin",
+    "department": "Management",
+    "isActive": true,
+    "createdAt": "2024-01-01T09:00:00.000Z"
+  },
+  {
+    "_id": "65f100000000000000000002",
+    "name": "Arjun Sharma",
+    "email": "dev@bugtracker.com",
+    "password": "Dev@123456",
+    "role": "developer",
+    "department": "Engineering",
+    "isActive": true,
+    "createdAt": "2024-01-01T09:05:00.000Z"
+  },
+  {
+    "_id": "65f100000000000000000003",
+    "name": "Priya Venkat",
+    "email": "priya@bugtracker.com",
+    "password": "Dev@123456",
+    "role": "developer",
+    "department": "Engineering",
+    "isActive": true,
+    "createdAt": "2024-01-01T09:10:00.000Z"
+  },
+  {
+    "_id": "65f100000000000000000004",
+    "name": "Meena Raj",
+    "email": "tester@bugtracker.com",
+    "password": "Tester@123456",
+    "role": "tester",
+    "department": "QA",
+    "isActive": true,
+    "createdAt": "2024-01-01T09:15:00.000Z"
+  },
+  {
+    "_id": "65f100000000000000000005",
+    "name": "Karan Das",
+    "email": "karan@bugtracker.com",
+    "password": "Dev@123456",
+    "role": "developer",
+    "department": "Backend",
+    "isActive": true,
+    "createdAt": "2024-01-01T09:20:00.000Z"
+  }
+]

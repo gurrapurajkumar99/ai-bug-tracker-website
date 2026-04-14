@@ -1,0 +1,34 @@
+[
+  {
+    "_id": "65f200000000000000000001",
+    "name": "Authentication",
+    "key": "AUTH",
+    "description": "Login, OAuth, 2FA, session management",
+    "status": "active",
+    "createdAt": "2024-01-01T10:00:00.000Z"
+  },
+  {
+    "_id": "65f200000000000000000002",
+    "name": "Payments",
+    "key": "PAY",
+    "description": "Stripe/Razorpay integration, refunds",
+    "status": "active",
+    "createdAt": "2024-01-01T10:05:00.000Z"
+  },
+  {
+    "_id": "65f200000000000000000003",
+    "name": "Dashboard",
+    "key": "DASH",
+    "description": "Analytics UI, charts, filters, export",
+    "status": "active",
+    "createdAt": "2024-01-01T10:10:00.000Z"
+  },
+  {
+    "_id": "65f200000000000000000004",
+    "name": "API",
+    "key": "API",
+    "description": "REST & GraphQL, rate limiting, auth",
+    "status": "active",
+    "createdAt": "2024-01-01T10:15:00.000Z"
+  }
+]

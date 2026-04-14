@@ -1,0 +1,14 @@
+{
+  "name": "bugtracker-ai-full-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BugTracker AI full app with attached frontend connected to a deploy-friendly backend",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
