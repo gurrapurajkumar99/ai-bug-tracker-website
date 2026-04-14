@@ -1,5 +1,7 @@
 name: Deploy Frontend to GitHub Pages
 
+# Trigger deployment fix
+
 on:
   push:
     branches:
