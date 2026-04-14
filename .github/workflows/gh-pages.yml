@@ -28,8 +28,4 @@ jobs:
 
       - name: Ensure GitHub Pages source is enabled
         run: |
-          curl -X PUT \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/${{ github.repository }}/pages \
-            -d '{"source":{"branch":"gh-pages","path":"/"}}'
+          gh api repos/${{ github.repository }}/pages -X PUT -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -f "source[branch]=gh-pages" -f "source[path]=/"
