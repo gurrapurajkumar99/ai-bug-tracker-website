@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>BugTracker AI — Full App</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div id="toast-wrap"></div>
+
+<!-- LOGIN -->
+<div id="login-wrap">
+<div class="login-card">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px">
+    <div class="sb-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M20 12a8 8 0 11-16 0 8 8 0 0116 0z"/></svg></div>
+    <div><div style="font-weight:700;font-size:15px;color:#0f172a">BugTracker AI</div><div style="font-size:11px;color:var(--pri);font-weight:600">Deep Learning Powered</div></div>
+  </div>
+  <div style="font-size:22px;font-weight:700;color:#0f172a;margin-bottom:4px">Welcome back</div>
+  <div style="font-size:13px;color:var(--mut);margin-bottom:18px">Sign in to manage bugs with AI</div>
+  <div class="demo-chips">
+    <button type="button" id="demo-admin" class="demo-chip" onclick="fillDemo('admin@bugtracker.com','Admin@123456')">Admin</button>
+    <button type="button" id="demo-developer" class="demo-chip" onclick="fillDemo('dev@bugtracker.com','Dev@123456')">Developer</button>
+    <button type="button" id="demo-tester" class="demo-chip" onclick="fillDemo('tester@bugtracker.com','Tester@123456')">Tester</button>
+  </div>
+  <form id="login-form" class="form-grid" onsubmit="event.preventDefault(); doLogin();">
+    <div class="form-group"><label>Email address</label><input id="l-email" type="email" value="admin@bugtracker.com" placeholder="you@company.com"/></div>
+    <div class="form-group"><label>Password</label><input id="l-pass" type="password" value="Admin@123456" placeholder="••••••••"/></div>
+    <button type="submit" id="login-btn" class="btn pri" onclick="doLogin()" style="width:100%;justify-content:center;height:40px;font-size:14px">Sign in</button>
+  </form>
+  <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--mut)">Demo: click any role above to prefill</div>
+</div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app" style="display:none">
+  <div id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M20 12a8 8 0 11-16 0 8 8 0 0116 0z"/></svg></div>
+      <div><div class="sb-title">BugTracker AI</div><div class="sb-sub">AI-POWERED</div></div>
+    </div>
+    <nav class="sb-nav">
+      <div class="nav-sec">Main</div>
+      <button class="nav-item active" onclick="nav('dashboard',this)">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" onclick="nav('bugs',this)">
+        <svg viewBox="0 0 24 24"><path d="M8 6h8M8 12h8M8 18h5"/><circle cx="18" cy="18" r="3"/><path d="m21 21-1.5-1.5"/></svg>
+        All Bugs
+        <span class="nav-badge" id="nb-open">0</span>
+      </button>
+      <button class="nav-item" onclick="nav('new-bug',this)">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+        Report Bug
+      </button>
+      <div class="nav-sec">Manage</div>
+      <button class="nav-item" onclick="nav('projects',this)">
+        <svg viewBox="0 0 24 24"><path d="M2 7a2 2 0 012-2h16a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V7z"/><path d="M16 2v4M8 2v4"/></svg>
+        Projects
+      </button>
+      <button class="nav-item" id="nav-admin" onclick="nav('admin',this)">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Admin Panel
+      </button>
+      <div class="nav-sec">Insights</div>
+      <button class="nav-item" onclick="nav('analytics',this)">
+        <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-4"/></svg>
+        Analytics
+      </button>
+    </nav>
+    <div class="sb-user" onclick="doLogout()">
+      <div class="av" id="sb-av" style="width:30px;height:30px;background:#ede9fe;color:#5b21b6">A</div>
+      <div style="flex:1;min-width:0">
+        <div id="sb-name" style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Admin User</div>
+        <div id="sb-role" style="font-size:11px;color:var(--mut)">admin</div>
+      </div>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--mut)" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="topbar">
+      <div class="tb-title" id="pg-title">Dashboard</div>
+      <div class="tb-search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search bugs… (Enter)" id="g-search" onkeydown="if(event.key==='Enter')doSearch(this.value)"/>
+      </div>
+      <button class="btn pri" onclick="nav('new-bug',null)">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+        New Bug
+      </button>
+      <button class="btn dan" onclick="doLogout()">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        Logout
+      </button>
+    </div>
+
+    <div id="content">
+
+      <!-- DASHBOARD -->
+      <div id="pg-dashboard" class="page active">
+        <div class="page-hdr"><h2>Dashboard</h2><p>AI-powered bug tracking overview</p></div>
+        <div class="metric-grid">
+          <div class="mc"><div class="mc-lbl">Total Bugs</div><div class="mc-val" id="m-total">47</div><div class="mc-sub">All projects</div></div>
+          <div class="mc"><div class="mc-lbl">Open</div><div class="mc-val" id="m-open" style="color:var(--red)">12</div><div class="mc-sub">Needs attention</div></div>
+          <div class="mc"><div class="mc-lbl">In Progress</div><div class="mc-val" id="m-prog" style="color:var(--amb)">18</div><div class="mc-sub">Being worked on</div></div>
+          <div class="mc"><div class="mc-lbl">Resolved</div><div class="mc-val" id="m-res" style="color:var(--grn)">17</div><div class="mc-sub">This month</div></div>
+        </div>
+        <div class="chart-row">
+          <div class="card">
+            <div class="card-title">Bug trends (7 days)</div>
+            <div class="card-sub">New bugs vs resolved</div>
+            <div class="legend"><span><span class="leg-dot" style="background:#4f46e5"></span>New</span><span><span class="leg-dot" style="background:#16a34a"></span>Resolved</span></div>
+            <div style="position:relative;height:190px"><canvas id="trendChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Severity distribution</div>
+            <div class="card-sub">AI-predicted breakdown</div>
+            <div class="legend" style="flex-wrap:wrap;gap:8px">
+              <span><span class="leg-dot" style="background:#dc2626"></span>Critical 19%</span>
+              <span><span class="leg-dot" style="background:#d97706"></span>High 34%</span>
+              <span><span class="leg-dot" style="background:#4f46e5"></span>Medium 30%</span>
+              <span><span class="leg-dot" style="background:#16a34a"></span>Low 17%</span>
+            </div>
+            <div style="position:relative;height:160px"><canvas id="sevChart"></canvas></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="margin-bottom:14px">Developer workload</div>
+          <div id="workload-list"></div>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div class="card-title">Recent bugs</div>
+            <button class="btn" onclick="nav('bugs',null)" style="font-size:11.5px">View all</button>
+          </div>
+          <table><thead><tr><th>ID</th><th>Title</th><th>Severity</th><th>Status</th><th>Assignee</th><th>AI Conf.</th></tr></thead>
+          <tbody id="recent-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- BUGS LIST -->
+      <div id="pg-bugs" class="page">
+        <div class="page-hdr" style="display:flex;align-items:center;justify-content:space-between">
+          <div><h2>All Bugs</h2><p id="bugs-count-lbl">Loading…</p></div>
+          <button class="btn pri" onclick="nav('new-bug',null)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New Bug</button>
+        </div>
+        <div class="filter-row">
+          <select id="f-status" onchange="renderBugs()"><option value="">All Status</option><option>open</option><option>in_progress</option><option>resolved</option><option>closed</option><option>rejected</option></select>
+          <select id="f-sev" onchange="renderBugs()"><option value="">All Severity</option><option>critical</option><option>high</option><option>medium</option><option>low</option></select>
+          <select id="f-proj" onchange="renderBugs()"><option value="">All Projects</option></select>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table><thead><tr><th>ID</th><th>Title</th><th>Project</th><th>Severity</th><th>Status</th><th>Assignee</th><th>Reported</th><th>Actions</th></tr></thead>
+          <tbody id="bugs-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- NEW BUG -->
+      <div id="pg-new-bug" class="page">
+        <div class="page-hdr"><h2>Report a Bug</h2><p>AI predicts severity from your description in real time</p></div>
+        <div style="max-width:680px">
+          <div class="card form-grid">
+            <div class="form-row">
+              <div class="form-group"><label>Project *</label><select id="f-bugproj"><option value="">Select project</option></select></div>
+              <div class="form-group"><label>Component</label><input id="f-comp" placeholder="e.g. Login"/></div>
+            </div>
+            <div class="form-group"><label>Bug Title *</label><input id="f-title" placeholder="e.g. Login crashes on Safari mobile" oninput="liveAI()"/></div>
+            <div class="form-group"><label>Description * <span style="color:var(--pri);font-weight:400;font-size:11px">← AI reads this</span></label>
+              <textarea id="f-desc" placeholder="Describe the bug in detail…" oninput="liveAI()"></textarea></div>
+            <div class="form-row">
+              <div class="form-group"><label>Environment</label>
+                <select id="f-env"><option value="production">Production</option><option value="staging">Staging</option><option value="development">Development</option></select></div>
+              <div class="form-group"><label>Assign to</label><select id="f-assignee"><option value="">Auto-assign</option></select></div>
+            </div>
+            <div id="ai-preview" style="display:none" class="ai-box">
+              <div class="ai-header">
+                <div class="ai-pill"><div class="pulse"></div>AI Prediction</div>
+                <span style="font-size:11.5px;color:var(--mut)">LTR + LR — 81% accuracy</span>
+                <div style="margin-left:auto;display:flex;align-items:center;gap:4px"><div class="pulse"></div><span style="font-size:11px;color:var(--pri);font-weight:600">Live</span></div>
+              </div>
+              <div class="ai-grid">
+                <div class="ai-cell"><div class="ai-cell-lbl">Severity</div><div class="ai-cell-val" id="ai-sev">—</div></div>
+                <div class="ai-cell"><div class="ai-cell-lbl">Confidence</div><div class="ai-cell-val" id="ai-conf" style="color:#5b21b6">—</div></div>
+                <div class="ai-cell"><div class="ai-cell-lbl">Priority rank</div><div class="ai-cell-val" id="ai-rank" style="color:var(--info)">—</div></div>
+                <div class="ai-cell"><div class="ai-cell-lbl">Assignee type</div><div class="ai-cell-val" id="ai-atype" style="color:var(--grn);font-size:13px">—</div></div>
+              </div>
+              <div id="ai-bars"></div>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button class="btn pri" onclick="submitBug()" style="flex:1;justify-content:center;height:38px;font-size:13.5px">Submit Bug Report</button>
+              <button class="btn" onclick="clearBugForm()">Clear</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROJECTS -->
+      <div id="pg-projects" class="page">
+        <div class="page-hdr" style="display:flex;align-items:center;justify-content:space-between">
+          <div><h2>Projects</h2><p>All active projects</p></div>
+          <button class="btn pri" onclick="showCreateProject()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New Project</button>
+        </div>
+        <div id="create-proj-form" style="display:none;margin-bottom:16px" class="card form-grid" style="background:var(--pri-l);border-color:#c7d2fe">
+          <div class="form-row">
+            <div class="form-group"><label>Name *</label><input id="pf-name" placeholder="Authentication Service"/></div>
+            <div class="form-group"><label>Key *</label><input id="pf-key" placeholder="AUTH" maxlength="6" oninput="this.value=this.value.toUpperCase()"/></div>
+          </div>
+          <div class="form-group"><label>Description</label><input id="pf-desc" placeholder="Short description"/></div>
+          <div style="display:flex;gap:10px"><button class="btn pri" onclick="createProject()" style="font-size:12.5px">Create</button><button class="btn" onclick="document.getElementById('create-proj-form').style.display='none'" style="font-size:12.5px">Cancel</button></div>
+        </div>
+        <div id="projects-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px"></div>
+      </div>
+
+      <!-- ADMIN -->
+      <div id="pg-admin" class="page">
+        <div class="page-hdr" style="display:flex;align-items:center;justify-content:space-between">
+          <div><h2>Admin Panel</h2><p>Manage users and roles</p></div>
+        </div>
+        <div class="card form-grid" style="margin-bottom:16px">
+          <div style="font-size:13.5px;font-weight:600;color:#1e293b">Add new user</div>
+          <div class="form-row">
+            <div class="form-group"><label>Full name *</label><input id="a-name" placeholder="Priya Venkat"/></div>
+            <div class="form-group"><label>Email *</label><input id="a-email" type="email" placeholder="priya@company.com"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Password *</label><input id="a-pass" type="password" placeholder="Min 6 characters"/></div>
+            <div class="form-group"><label>Role</label>
+              <select id="a-role"><option value="tester">Tester</option><option value="developer">Developer</option><option value="admin">Admin</option></select>
+            </div>
+          </div>
+          <div class="form-group"><label>Department</label><input id="a-dept" placeholder="Engineering"/></div>
+          <button class="btn pri" onclick="addUser()" style="width:auto;align-self:start">
+            <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
+            Add User
+          </button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--bdr);font-size:13.5px;font-weight:600">All Users</div>
+          <table><thead><tr><th>User</th><th>Email</th><th>Role</th><th>Dept</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="users-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- ANALYTICS -->
+      <div id="pg-analytics" class="page">
+        <div class="page-hdr"><h2>Analytics</h2><p>Deep insights powered by AI</p></div>
+        <div class="card grad-card" style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div style="width:48px;height:48px;background:rgba(255,255,255,.2);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M20 12a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:16px;font-weight:700;color:#fff">AI Severity Prediction (LTR + Linear Regression)</div>
+              <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px">Based on IEEE ICICT 2024 — "Software Bug Tracker using Deep Learning"</div>
+            </div>
+            <div style="text-align:right"><div style="font-size:40px;font-weight:700;color:#fff">81%</div><div style="font-size:11.5px;color:rgba(255,255,255,.75)">Prediction accuracy</div></div>
+            <div style="text-align:right"><div id="an-preds" style="font-size:24px;font-weight:600;color:#fff">47</div><div style="font-size:11.5px;color:rgba(255,255,255,.75)">Predictions made</div></div>
+          </div>
+        </div>
+        <div class="metric-grid">
+          <div class="mc"><div class="mc-lbl">Total Bugs</div><div class="mc-val" id="an-total">47</div></div>
+          <div class="mc"><div class="mc-lbl">Open</div><div class="mc-val" id="an-open" style="color:var(--red)">12</div></div>
+          <div class="mc"><div class="mc-lbl">Critical Open</div><div class="mc-val" id="an-crit" style="color:var(--red)">3</div></div>
+          <div class="mc"><div class="mc-lbl">Avg Resolution</div><div class="mc-val">2.4d</div></div>
+        </div>
+        <div class="chart-row">
+          <div class="card">
+            <div class="card-title">Bug trends (30 days)</div>
+            <div class="card-sub">Created vs resolved</div>
+            <div class="legend"><span><span class="leg-dot" style="background:#4f46e5"></span>Created</span><span><span class="leg-dot" style="background:#16a34a"></span>Resolved</span></div>
+            <div style="position:relative;height:200px"><canvas id="resChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Bugs by project</div>
+            <div class="card-sub">Open per project</div>
+            <div style="position:relative;height:200px"><canvas id="projChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<div id="bug-detail-overlay" class="modal-overlay" onclick="closeBugDetail(event)">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <div id="detail-title" style="font-size:18px;font-weight:700;color:#111827;margin-bottom:6px">Bug title</div>
+        <div id="detail-subtitle" style="font-size:12px;color:var(--mut)">BUG ID · Project</div>
+      </div>
+      <button class="modal-close" onclick="closeBugDetail()">×</button>
+    </div>
+    <div class="detail-grid">
+      <div><div class="detail-label">Status</div><div id="detail-status"></div></div>
+      <div><div class="detail-label">Severity</div><div id="detail-sev"></div></div>
+      <div><div class="detail-label">Assignee</div><div id="detail-assignee-name" style="font-weight:600;color:#111827">Unassigned</div></div>
+      <div><div class="detail-label">Reported</div><div id="detail-reported" style="color:var(--mut)"></div></div>
+      <div><div class="detail-label">Environment</div><div id="detail-env" style="color:var(--mut)"></div></div>
+      <div><div class="detail-label">Component</div><div id="detail-comp" style="color:var(--mut)"></div></div>
+      <div><div class="detail-label">AI Confidence</div><div id="detail-ai" style="color:#5b21b6;font-weight:600"></div></div>
+      <div><div class="detail-label">Priority</div><div id="detail-priority" style="color:var(--txt);font-weight:600"></div></div>
+    </div>
+    <div class="detail-body">
+      <div class="detail-label">Description</div>
+      <p id="detail-desc" style="margin-top:8px;line-height:1.6;color:#334155"></p>
+    </div>
+    <div class="detail-actions">
+      <div style="flex:1;min-width:0">
+        <div class="detail-label">Assign / Reassign</div>
+        <select id="detail-assignee" class="form-group" onchange="updateBugAssignee(currentBugDetailId,this.value)"></select>
+        <div style="margin-top:8px;font-size:12px;color:var(--mut)">Suggested: <span id="detail-suggested" style="font-weight:600;color:var(--txt)"></span></div>
+      </div>
+      <button class="btn" onclick="closeBugDetail()" style="align-self:flex-end;min-height:40px;padding:0 18px">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
