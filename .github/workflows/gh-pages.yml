@@ -6,9 +6,8 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
   pages: write
-  id-token: write
 
 jobs:
   deploy:
@@ -16,17 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Enable GitHub Pages (optional)
-        if: ${{ secrets.PAGES_PAT != '' }}
-        uses: actions/configure-pages@v6
+      - name: Deploy frontend to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          token: ${{ secrets.PAGES_PAT }}
-          enablement: true
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: frontend
-
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v5
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./frontend
+          publish_branch: gh-pages
+          allow_empty_commit: true
