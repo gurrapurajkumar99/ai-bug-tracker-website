@@ -211,6 +211,7 @@ async function ensureFile(filePath, seedValue) {
 }
 
 async function readJson(filePath, fallback) {
+  await dataReady;
   try {
     const raw = await fs.readFile(filePath, 'utf8');
     return JSON.parse(raw);
@@ -220,6 +221,7 @@ async function readJson(filePath, fallback) {
 }
 
 async function writeJson(filePath, value) {
+  await dataReady;
   await fs.writeFile(filePath, JSON.stringify(value, null, 2));
 }
 
@@ -463,13 +465,19 @@ app.get('*', (_req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
 });
 
-ensureData()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`BugTracker AI running on http://localhost:${PORT}`);
+const dataReady = ensureData();
+
+if (require.main === module) {
+  dataReady
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`BugTracker AI running on http://localhost:${PORT}`);
+      });
+    })
+    .catch((error) => {
+      console.error('Failed to start server:', error);
+      process.exit(1);
     });
-  })
-  .catch((error) => {
-    console.error('Failed to start server:', error);
-    process.exit(1);
-  });
+}
+
+module.exports = app;
