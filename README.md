@@ -2,6 +2,10 @@
 
 A full-stack bug tracking application with AI-powered severity prediction and real-time analytics.
 
+## 🚀 Live Demo
+
+[View Live Application](https://ai-bug-tracker-website-3qwk2ztzu-2303a51782-srueduins-projects.vercel.app)
+
 ## Features
 
 - **AI-Powered Bug Classification**: Automatically predicts bug severity using machine learning
