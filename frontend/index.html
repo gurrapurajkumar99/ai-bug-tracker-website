@@ -148,9 +148,9 @@
           <button class="btn pri" onclick="nav('new-bug',null)"><svg viewbox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New Bug</button>
         </div>
         <div class="filter-row">
-          <select id="f-status" onchange="renderBugs()"><option value="">All Status</option><option>open</option><option>in_progress</option><option>resolved</option><option>closed</option><option>rejected</option></select>
-          <select id="f-sev" onchange="renderBugs()"><option value="">All Severity</option><option>critical</option><option>high</option><option>medium</option><option>low</option></select>
-          <select id="f-proj" onchange="renderBugs()"><option value="">All Projects</option></select>
+          <select id="f-status" onchange="renderBugs()" aria-label="Filter by status"><option value="">All Status</option><option>open</option><option>in_progress</option><option>resolved</option><option>closed</option><option>rejected</option></select>
+          <select id="f-sev" onchange="renderBugs()" aria-label="Filter by severity"><option value="">All Severity</option><option>critical</option><option>high</option><option>medium</option><option>low</option></select>
+          <select id="f-proj" onchange="renderBugs()" aria-label="Filter by project"><option value="">All Projects</option></select>
         </div>
         <div class="card style-class-28">
           <table><thead><tr><th>ID</th><th>Title</th><th>Project</th><th>Severity</th><th>Status</th><th>Assignee</th><th>Reported</th><th>Actions</th></tr></thead>
@@ -164,7 +164,7 @@
         <div class="style-class-29">
           <div class="card form-grid">
             <div class="form-row">
-              <div class="form-group"><label>Project *</label><select id="f-bugproj"><option value="">Select project</option></select></div>
+              <div class="form-group"><label>Project *</label><select id="f-bugproj" aria-label="Select project"><option value="">Select project</option></select></div>
               <div class="form-group"><label>Component</label><input id="f-comp" placeholder="e.g. Login"/></div>
             </div>
             <div class="form-group"><label>Bug Title *</label><input id="f-title" placeholder="e.g. Login crashes on Safari mobile" oninput="liveAI()"/></div>
@@ -172,8 +172,8 @@
               <textarea id="f-desc" placeholder="Describe the bug in detail…" oninput="liveAI()"></textarea></div>
             <div class="form-row">
               <div class="form-group"><label>Environment</label>
-                <select id="f-env"><option value="production">Production</option><option value="staging">Staging</option><option value="development">Development</option></select></div>
-              <div class="form-group"><label>Assign to</label><select id="f-assignee"><option value="">Auto-assign</option></select></div>
+                <select id="f-env" aria-label="Select environment"><option value="production">Production</option><option value="staging">Staging</option><option value="development">Development</option></select></div>
+              <div class="form-group"><label>Assign to</label><select id="f-assignee" aria-label="Assign to user"><option value="">Auto-assign</option></select></div>
             </div>
             <div id="ai-preview" class="ai-box style-class-8">
               <div class="ai-header">
@@ -228,7 +228,7 @@
           <div class="form-row">
             <div class="form-group"><label>Password *</label><input id="a-pass" type="password" placeholder="Min 6 characters"/></div>
             <div class="form-group"><label>Role</label>
-              <select id="a-role"><option value="tester">Tester</option><option value="developer">Developer</option><option value="admin">Admin</option></select>
+              <select id="a-role" aria-label="Select user role"><option value="tester">Tester</option><option value="developer">Developer</option><option value="admin">Admin</option></select>
             </div>
           </div>
           <div class="form-group"><label>Department</label><input id="a-dept" placeholder="Engineering"/></div>
@@ -311,7 +311,7 @@
     <div class="detail-actions">
       <div class="style-class-10">
         <div class="detail-label">Assign / Reassign</div>
-        <select id="detail-assignee" class="form-group" onchange="updateBugAssignee(currentBugDetailId,this.value)"></select>
+        <select id="detail-assignee" class="form-group" onchange="updateBugAssignee(currentBugDetailId,this.value)" aria-label="Reassign bug to user"></select>
         <div class="style-class-62">Suggested: <span id="detail-suggested" class="style-class-63"></span></div>
       </div>
       <button class="btn style-class-64" onclick="closeBugDetail()">Close</button>
