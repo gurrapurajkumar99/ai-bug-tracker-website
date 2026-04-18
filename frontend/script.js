@@ -178,12 +178,14 @@ async function apiFetch(path, opts={}){
   }
 }
 
-async function loadUsersFromAPI(){
+async function loadUsersFromAPI(refresh=true){
   var {ok,data} = await apiFetch('/users');
   if(ok && data.users){
     users = data.users.map(u=>({id:u._id,name:u.name,email:u.email,role:u.role,dept:u.department||'',active:u.isActive}));
-    refreshPeopleViews();
+    if(refresh) refreshPeopleViews();
+    return true;
   }
+  return false;
 }
 
 async function loadBugsFromAPI(){
@@ -392,7 +394,9 @@ function renderAssignableOptions(bug){
   document.getElementById('detail-suggested').textContent = suggestion ? suggestion.name : 'No active users';
 }
 
-function openBugDetail(bugId){
+async function openBugDetail(bugId){
+  await loadUsersFromAPI(false);
+
   var bug = bugs.find(b=>b.id===bugId);
   if(!bug) return;
   currentBugDetailId = bugId;
