@@ -819,6 +819,47 @@ app.post('/api/ai/predict', async (req, res) => {
   res.json(predictAI(`${title || ''} ${description || ''} ${environment || ''}`));
 });
 
+// GUEST FEEDBACK - Public form submissions
+app.post('/api/feedback', express.json({ limit: '10mb' }), async (req, res) => {
+  const bugs = await readJson(BUG_FILE, []);
+  const projects = await readJson(PROJECT_FILE, seedProjects);
+  const users = await readJson(USER_FILE, seedUsers);
+  
+  const { name, email, title, description, imageUrl, reporterRole = 'guest' } = req.body || {};
+  
+  if (!title || !description) {
+    return res.status(400).json({ message: 'Title and description required' });
+  }
+
+  // Auto-assign to first project + least loaded dev
+  const project = projects[0] || { _id: 'p1', name: 'General', key: 'GEN' };
+  const dev = chooseAutoAssignee(users, bugs) || users.find(u => u.role === 'developer');
+  
+  const ai = predictAI(`${title} ${description}`);
+  const now = new Date().toISOString();
+  const guestBug = {
+    _id: crypto.randomUUID().replace(/-/g, '').slice(0, 24),
+    title: String(title).trim(),
+    description: `[Guest: ${name || 'Anonymous'} (${email || 'no-email'})]\n\n${description}`,
+    environment: 'guest',
+    component: 'Public Feedback',
+    imageUrl: imageUrl || null,
+    severity: ai.severity,
+    status: 'open',
+    project: { _id: project._id, name: project.name, key: project.key },
+    assignee: dev ? { _id: dev._id, name: dev.name, email: dev.email } : null,
+    reporterRole,
+    aiConfidenceScore: ai.confidence,
+    priorityRank: ai.priority_rank,
+    createdAt: now,
+    updatedAt: now
+  };
+
+  bugs.unshift(guestBug);
+  await writeJson(BUG_FILE, bugs);
+  res.status(201).json({ message: 'Guest feedback received! Assigned to team.', bugId: guestBug._id });
+});
+
 app.get('*', (_req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
 });

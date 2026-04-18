@@ -917,3 +917,72 @@ function makeToken(user) {
 }
 
 bindLoginActions();
+
+// GUEST FEEDBACK FORM - Public users no login needed
+document.addEventListener('DOMContentLoaded', function() {
+  const guestForm = document.getElementById('guest-form');
+  if (guestForm) {
+    guestForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      await guestSubmitFeedback();
+    });
+  }
+});
+
+async function guestSubmitFeedback() {
+  const name = document.getElementById('g-name').value.trim();
+  const email = document.getElementById('g-email').value.trim();
+  const title = document.getElementById('g-title').value.trim();
+  const desc = document.getElementById('g-desc').value.trim();
+  const imageFile = document.getElementById('g-image').files[0];
+  
+  if (!title || !desc) {
+    toast('Title and description required');
+    return;
+  }
+
+  // Upload image first
+  let imageUrl = null;
+  if (imageFile) {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    try {
+      const r = await fetch(API + '/bugs/upload', { method: 'POST', body: formData });
+      if (r.ok) {
+        const d = await r.json();
+        imageUrl = d.imageUrl;
+      }
+    } catch (e) {
+      console.warn('Image upload failed');
+    }
+  }
+
+  // Submit as guest feedback
+  const payload = {
+    name: name || 'Guest',
+    email: email || 'guest@example.com',
+    title,
+    description: desc,
+    imageUrl,
+    reporterRole: 'guest'
+  };
+
+  try {
+    const r = await fetch(API + '/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (r.ok) {
+      toast('✅ Thank you! Your feedback received.');
+      document.getElementById('guest-form').reset();
+    } else {
+      const d = await r.json();
+      toast('Failed to submit: ' + (d.message || 'Unknown error'));
+    }
+  } catch (e) {
+    toast('Backend unavailable - demo mode');
+    // Demo fallback - show locally
+  }
+}

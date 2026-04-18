@@ -1,29 +1,24 @@
-# Task: Role Options, Email Welcome, Simple User Dashboard + Image Upload, Deploy to GitHub/Vercel
+# Guest Feedback Form for Public Users
+Status: Planning → Implementation
 
-## Approved Plan Steps (In Progress)
+## Current: Company login + role dashboards
+## Goal: Add public 'Report Bug' form (no login, normal website visitors)
 
-### Backend Updates
-- [x] 1. Install deps: `npm i multer nodemailer`
-- [x] 2. Edit `backend/server.js`: 
-  - Add Nodemailer welcome email on new user (sample: from 'bugtracker.sample@gmail.com', pass 'abcd efgh ijkl mnop')
-  - Add multer for image upload in `/api/bugs/upload` (store /backend/public/uploads)
-  - Accept imageUrl in `/api/bugs`, store/serve /uploads/`
+**Features:**
+- Simple form: Name, Email, Bug title, Description, Screenshot
+- Guest reports → 'guest' role bugs visible to company dashboards  
+- No registration, direct submit
+- Thank you page after submission
 
-### Frontend Updates
-- [x] 3. Edit `frontend/index.html`: Add image input to new-bug form + dashboard quick-report card
-- [x] 4. Edit `frontend/script.js`: 
-  - Simplify dashboard (personal bugs only, remove team charts for non-admin)
-  - Role-based quick report (tester/developer)
-  - Quick bug report in dashboard (title/desc/image → POST /api/bugs)
-  - Display bug images in list/dashboard
-- [x] 5. Edit `frontend/style.css`: Styles for quick form, image preview/upload
+**Files to Edit:**
+1. frontend/index.html - Add guest feedback form beside login-card
+2. frontend/script.js - guestSubmitFeedback() function
+3. backend/server.js - POST /api/feedback endpoint
+4. frontend/style.css - .guest-feedback styles
 
-### Deploy & Test
-- [x] 6. Test local backend/frontend (register→email, report w/image→dashboard, roles/quick report work)
-- [ ] 7. Git commit/push: `git add . && git commit -m 'feat: role dashboards, welcome emails, image upload, simple user dash' && git push`
-- [ ] 8. Install Vercel CLI if needed: `npm i -g vercel`, then `vercel --prod`
-- [ ] 9. Test prod (emails/images/roles), update TODO.md complete
-- [x] DONE
-
-**Next step marked after each completion. Current: Backend deps & server.js**
-
+**Step 1:** Create TODO.md ✅
+**Step 2:** Edit frontend/index.html + form
+**Step 3:** Backend /api/feedback  
+**Step 4:** Frontend JS handler
+**Step 5:** Test + deploy PR #1
+**Step 6:** Complete
