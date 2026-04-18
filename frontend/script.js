@@ -117,8 +117,9 @@ async function doLogin(){
   } catch(_){}
 
   // Fallback to demo login
-  var demo = {
+var demo = {
     'admin.user@gmail.com'  :{name:'Admin User',  role:'admin',    email},
+    'user@gmail.com'        :{name:'Regular User', role:'user',     email},
     'arjun.sharma@gmail.com':{name:'Arjun Sharma', role:'developer',email},
     'priya.venkat@gmail.com':{name:'Priya Venkat', role:'developer',email},
     'meena.raj@gmail.com'   :{name:'Meena Raj',    role:'tester',   email},
@@ -160,13 +161,24 @@ function bootApp(){
   // show/hide admin nav
   document.getElementById('nav-admin').style.display = currentUser.role==='admin' ? '' : 'none';
   
-  // Role-based dashboard options
+  // Role-based dashboard options - users only see Report Bug
   const quickCard = document.getElementById('quick-report-card');
-  if (['tester','developer'].includes(currentUser.role)) {
+  if (['tester','developer','user'].includes(currentUser.role)) {
     quickCard.style.display = 'block';
     populateQuickForm();
   } else {
     quickCard.style.display = 'none';
+  }
+
+  // Hide sensitive nav items for 'user' role
+  if (currentUser.role === 'user') {
+    document.querySelectorAll('.nav-item:not([onclick*="new-bug"], .nav-item.active)').forEach(item => {
+      item.style.display = 'none';
+    });
+    document.getElementById('topbar').innerHTML = `
+      <div class="tb-title" id="pg-title">Report Bug</div>
+      <button class="btn pri" onclick="doLogout()">Logout</button>
+    `;
   }
   
   loadProjectsFromAPI();
@@ -304,7 +316,13 @@ function doSearch(q){
 // ═══════════════════════════════════════════════
 function renderDashboard(){
   var role = currentUser.role;
-  var userBugs = bugs.filter(b => b.assignee === currentUser.name || b.assigneeId === currentUser._id || role === 'admin');
+  var userBugs;
+  if (role === 'user') {
+    // Users only see their reported bugs
+    userBugs = bugs.filter(b => b.assignee === currentUser.name);
+  } else {
+    userBugs = bugs.filter(b => b.assignee === currentUser.name || b.assigneeId === currentUser._id || role === 'admin');
+  }
   var open= userBugs.filter(b=>b.status==='open').length;
   var ip  =userBugs.filter(b=>b.status==='in_progress').length;
   var res =userBugs.filter(b=>b.status==='resolved'||b.status==='closed').length;

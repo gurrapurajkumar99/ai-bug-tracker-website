@@ -833,7 +833,7 @@ app.post('/api/feedback', express.json({ limit: '10mb' }), async (req, res) => {
 
   // Auto-assign to first project + least loaded dev
   const project = projects[0] || { _id: 'p1', name: 'General', key: 'GEN' };
-  const dev = chooseAutoAssignee(users, bugs) || users.find(u => u.role === 'developer');
+  const dev = chooseAutoAssignee(users, bugs) || users.find(u => ['developer','user'].includes(u.role));
   
   const ai = predictAI(`${title} ${description}`);
   const now = new Date().toISOString();
