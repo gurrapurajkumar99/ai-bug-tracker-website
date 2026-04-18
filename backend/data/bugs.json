@@ -7,8 +7,16 @@
     "component": "Auth UI",
     "severity": "critical",
     "status": "open",
-    "project": { "_id": "65f200000000000000000001", "name": "Authentication", "key": "AUTH" },
-    "assignee": { "_id": "65f100000000000000000002", "name": "Arjun Sharma", "email": "dev@bugtracker.com" },
+    "project": {
+      "_id": "65f200000000000000000001",
+      "name": "Authentication",
+      "key": "AUTH"
+    },
+    "assignee": {
+      "_id": "65f100000000000000000002",
+      "name": "Arjun Sharma",
+      "email": "dev@bugtracker.com"
+    },
     "aiConfidenceScore": 0.93,
     "priorityRank": 98,
     "createdAt": "2024-01-15T10:00:00.000Z",
@@ -22,8 +30,16 @@
     "component": "Checkout",
     "severity": "critical",
     "status": "in_progress",
-    "project": { "_id": "65f200000000000000000002", "name": "Payments", "key": "PAY" },
-    "assignee": { "_id": "65f100000000000000000003", "name": "Priya Venkat", "email": "priya@bugtracker.com" },
+    "project": {
+      "_id": "65f200000000000000000002",
+      "name": "Payments",
+      "key": "PAY"
+    },
+    "assignee": {
+      "_id": "65f100000000000000000003",
+      "name": "Priya Venkat",
+      "email": "priya@bugtracker.com"
+    },
     "aiConfidenceScore": 0.89,
     "priorityRank": 96,
     "createdAt": "2024-01-14T10:00:00.000Z",
@@ -37,8 +53,16 @@
     "component": "Charts",
     "severity": "high",
     "status": "open",
-    "project": { "_id": "65f200000000000000000003", "name": "Dashboard", "key": "DASH" },
-    "assignee": { "_id": "65f100000000000000000005", "name": "Karan Das", "email": "karan@bugtracker.com" },
+    "project": {
+      "_id": "65f200000000000000000003",
+      "name": "Dashboard",
+      "key": "DASH"
+    },
+    "assignee": {
+      "_id": "65f100000000000000000005",
+      "name": "Karan Das",
+      "email": "karan@bugtracker.com"
+    },
     "aiConfidenceScore": 0.81,
     "priorityRank": 74,
     "createdAt": "2024-01-14T12:00:00.000Z",
@@ -52,8 +76,16 @@
     "component": "Gateway",
     "severity": "high",
     "status": "in_progress",
-    "project": { "_id": "65f200000000000000000004", "name": "API", "key": "API" },
-    "assignee": { "_id": "65f100000000000000000002", "name": "Arjun Sharma", "email": "dev@bugtracker.com" },
+    "project": {
+      "_id": "65f200000000000000000004",
+      "name": "API",
+      "key": "API"
+    },
+    "assignee": {
+      "_id": "65f100000000000000000002",
+      "name": "Arjun Sharma",
+      "email": "dev@bugtracker.com"
+    },
     "aiConfidenceScore": 0.84,
     "priorityRank": 72,
     "createdAt": "2024-01-13T08:00:00.000Z",
@@ -67,8 +99,16 @@
     "component": "Notifications",
     "severity": "high",
     "status": "resolved",
-    "project": { "_id": "65f200000000000000000001", "name": "Authentication", "key": "AUTH" },
-    "assignee": { "_id": "65f100000000000000000004", "name": "Meena Raj", "email": "tester@bugtracker.com" },
+    "project": {
+      "_id": "65f200000000000000000001",
+      "name": "Authentication",
+      "key": "AUTH"
+    },
+    "assignee": {
+      "_id": "65f100000000000000000004",
+      "name": "Meena Raj",
+      "email": "tester@bugtracker.com"
+    },
     "aiConfidenceScore": 0.77,
     "priorityRank": 71,
     "createdAt": "2024-01-12T08:00:00.000Z",
@@ -82,8 +122,16 @@
     "component": "Sessions",
     "severity": "medium",
     "status": "open",
-    "project": { "_id": "65f200000000000000000001", "name": "Authentication", "key": "AUTH" },
-    "assignee": { "_id": "65f100000000000000000005", "name": "Karan Das", "email": "karan@bugtracker.com" },
+    "project": {
+      "_id": "65f200000000000000000001",
+      "name": "Authentication",
+      "key": "AUTH"
+    },
+    "assignee": {
+      "_id": "65f100000000000000000005",
+      "name": "Karan Das",
+      "email": "karan@bugtracker.com"
+    },
     "aiConfidenceScore": 0.71,
     "priorityRank": 48,
     "createdAt": "2024-01-11T08:00:00.000Z",
@@ -97,8 +145,16 @@
     "component": "Pricing",
     "severity": "medium",
     "status": "resolved",
-    "project": { "_id": "65f200000000000000000002", "name": "Payments", "key": "PAY" },
-    "assignee": { "_id": "65f100000000000000000003", "name": "Priya Venkat", "email": "priya@bugtracker.com" },
+    "project": {
+      "_id": "65f200000000000000000002",
+      "name": "Payments",
+      "key": "PAY"
+    },
+    "assignee": {
+      "_id": "65f100000000000000000003",
+      "name": "Priya Venkat",
+      "email": "priya@bugtracker.com"
+    },
     "aiConfidenceScore": 0.68,
     "priorityRank": 44,
     "createdAt": "2024-01-10T08:00:00.000Z",
@@ -112,8 +168,16 @@
     "component": "Responsive UI",
     "severity": "low",
     "status": "resolved",
-    "project": { "_id": "65f200000000000000000003", "name": "Dashboard", "key": "DASH" },
-    "assignee": { "_id": "65f100000000000000000004", "name": "Meena Raj", "email": "tester@bugtracker.com" },
+    "project": {
+      "_id": "65f200000000000000000003",
+      "name": "Dashboard",
+      "key": "DASH"
+    },
+    "assignee": {
+      "_id": "65f100000000000000000004",
+      "name": "Meena Raj",
+      "email": "tester@bugtracker.com"
+    },
     "aiConfidenceScore": 0.62,
     "priorityRank": 18,
     "createdAt": "2024-01-09T08:00:00.000Z",
@@ -127,8 +191,16 @@
     "component": "Tooltips",
     "severity": "low",
     "status": "closed",
-    "project": { "_id": "65f200000000000000000003", "name": "Dashboard", "key": "DASH" },
-    "assignee": { "_id": "65f100000000000000000005", "name": "Karan Das", "email": "karan@bugtracker.com" },
+    "project": {
+      "_id": "65f200000000000000000003",
+      "name": "Dashboard",
+      "key": "DASH"
+    },
+    "assignee": {
+      "_id": "65f100000000000000000005",
+      "name": "Karan Das",
+      "email": "karan@bugtracker.com"
+    },
     "aiConfidenceScore": 0.59,
     "priorityRank": 12,
     "createdAt": "2024-01-08T08:00:00.000Z",
@@ -142,8 +214,16 @@
     "component": "GraphQL",
     "severity": "high",
     "status": "in_progress",
-    "project": { "_id": "65f200000000000000000004", "name": "API", "key": "API" },
-    "assignee": { "_id": "65f100000000000000000002", "name": "Arjun Sharma", "email": "dev@bugtracker.com" },
+    "project": {
+      "_id": "65f200000000000000000004",
+      "name": "API",
+      "key": "API"
+    },
+    "assignee": {
+      "_id": "65f100000000000000000002",
+      "name": "Arjun Sharma",
+      "email": "dev@bugtracker.com"
+    },
     "aiConfidenceScore": 0.86,
     "priorityRank": 73,
     "createdAt": "2024-01-07T08:00:00.000Z",
@@ -157,8 +237,16 @@
     "component": "2FA",
     "severity": "critical",
     "status": "open",
-    "project": { "_id": "65f200000000000000000001", "name": "Authentication", "key": "AUTH" },
-    "assignee": { "_id": "65f100000000000000000003", "name": "Priya Venkat", "email": "priya@bugtracker.com" },
+    "project": {
+      "_id": "65f200000000000000000001",
+      "name": "Authentication",
+      "key": "AUTH"
+    },
+    "assignee": {
+      "_id": "65f100000000000000000003",
+      "name": "Priya Venkat",
+      "email": "priya@bugtracker.com"
+    },
     "aiConfidenceScore": 0.91,
     "priorityRank": 97,
     "createdAt": "2024-01-06T08:00:00.000Z",
@@ -172,8 +260,16 @@
     "component": "Refunds",
     "severity": "high",
     "status": "open",
-    "project": { "_id": "65f200000000000000000002", "name": "Payments", "key": "PAY" },
-    "assignee": { "_id": "65f100000000000000000002", "name": "Arjun Sharma", "email": "dev@bugtracker.com" },
+    "project": {
+      "_id": "65f200000000000000000002",
+      "name": "Payments",
+      "key": "PAY"
+    },
+    "assignee": {
+      "_id": "65f100000000000000000002",
+      "name": "Arjun Sharma",
+      "email": "dev@bugtracker.com"
+    },
     "aiConfidenceScore": 0.83,
     "priorityRank": 75,
     "createdAt": "2024-01-05T08:00:00.000Z",
