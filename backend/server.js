@@ -1,4 +1,6 @@
 const express = require('express');
+const multer = require('multer');
+const nodemailer = require('nodemailer');
 const fs = require('fs/promises');
 const path = require('path');
 const crypto = require('crypto');
@@ -162,6 +164,43 @@ function parseToken(authHeader) {
     return null;
   }
 }
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'bugtracker.sample@gmail.com',
+    pass: 'abcd efgh ijkl mnop'  // Replace with real Gmail app password
+  }
+});
+
+async function sendWelcomeEmail(user) {
+  const mailOptions = {
+    from: 'bugtracker.sample@gmail.com',
+    to: user.email,
+    subject: 'Welcome to BugTracker AI!',
+    html: `
+      <h2>Welcome, ${user.name}!</h2>
+      <p>Your account has been created successfully.</p>
+      <ul>
+        <li><strong>Role:</strong> ${user.role}</li>
+        <li><strong>Department:</strong> ${user.department || 'N/A'}</li>
+      </ul>
+      <p>Login at <a href="http://localhost:5001">BugTracker AI</a></p>
+      <p>Best,<br>BugTracker Team</p>
+    `
+  };
+  await transporter.sendMail(mailOptions);
+}
+
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const uniqueName = crypto.randomBytes(16).toString('hex') + path.extname(file.originalname);
+    cb(null, uniqueName);
+  }
+});
+const upload = multer({ storage });
 
 function predictAI(text) {
   const input = String(text || '').toLowerCase();
@@ -523,6 +562,7 @@ app.use((req, res, next) => {
 
   next();
 });
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use(express.static(FRONTEND_DIR));
 
 app.get('/api/health', async (_req, res) => {
@@ -597,6 +637,14 @@ app.post('/api/users', async (req, res) => {
 
   users.push(user);
   await writeJson(USER_FILE, users);
+  
+  // Send welcome email
+  try {
+    await sendWelcomeEmail(user);
+  } catch (emailError) {
+    console.error('Welcome email failed:', emailError.message);
+  }
+  
   res.status(201).json({ user: publicUser(user) });
 });
 
@@ -671,11 +719,16 @@ app.get('/api/bugs', async (_req, res) => {
   res.json({ bugs: bugs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) });
 });
 
-app.post('/api/bugs', async (req, res) => {
+app.post('/api/bugs/upload', upload.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+  res.json({ imageUrl: `/uploads/${req.file.filename}` });
+});
+
+app.post('/api/bugs', express.json({ limit: '10mb' }), async (req, res) => {
   const bugs = await readJson(BUG_FILE, []);
   const users = await readJson(USER_FILE, seedUsers);
   const projects = await readJson(PROJECT_FILE, seedProjects);
-  const { title, description, environment, component, projectId, assignee } = req.body || {};
+  const { title, description, environment, component, projectId, assignee, imageUrl } = req.body || {}; 
 
   if (!title || !description || !projectId) {
     return res.status(400).json({ message: 'Project, title and description are required' });
@@ -698,6 +751,7 @@ app.post('/api/bugs', async (req, res) => {
     description: String(description).trim(),
     environment: String(environment || 'production').trim(),
     component: String(component || '').trim(),
+    imageUrl: imageUrl || null,
     severity: ai.severity,
     status: 'open',
     project: { _id: project._id, name: project.name, key: project.key },

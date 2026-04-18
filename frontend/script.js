@@ -159,12 +159,27 @@ function bootApp(){
   document.getElementById('sb-role').textContent  = currentUser.role;
   // show/hide admin nav
   document.getElementById('nav-admin').style.display = currentUser.role==='admin' ? '' : 'none';
+  
+  // Role-based dashboard options
+  const quickCard = document.getElementById('quick-report-card');
+  if (['tester','developer'].includes(currentUser.role)) {
+    quickCard.style.display = 'block';
+    populateQuickForm();
+  } else {
+    quickCard.style.display = 'none';
+  }
+  
   loadProjectsFromAPI();
   // Load users from API
   loadUsersFromAPI();
   // Load bugs from API
   loadBugsFromAPI();
   setTimeout(()=>{ buildCharts(); renderDashboard(); },50);
+}
+
+function populateQuickForm() {
+  const projSel = document.getElementById('q-proj');
+  projSel.innerHTML = '<option value="">Select...</option>' + projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
 }
 
 // ═══════════════════════════════════════════════
@@ -288,8 +303,8 @@ function doSearch(q){
 // DASHBOARD
 // ═══════════════════════════════════════════════
 function renderDashboard(){
-  var isAdmin = currentUser && currentUser.role === 'admin';
-  var userBugs = isAdmin ? bugs : bugs.filter(b => b.assignee === currentUser.name || b.assigneeId === currentUser._id);
+  var role = currentUser.role;
+  var userBugs = bugs.filter(b => b.assignee === currentUser.name || b.assigneeId === currentUser._id || role === 'admin');
   var open= userBugs.filter(b=>b.status==='open').length;
   var ip  =userBugs.filter(b=>b.status==='in_progress').length;
   var res =userBugs.filter(b=>b.status==='resolved'||b.status==='closed').length;
@@ -297,17 +312,49 @@ function renderDashboard(){
   document.getElementById('m-open').textContent=open;
   document.getElementById('m-prog').textContent=ip;
   document.getElementById('m-res').textContent=res;
-  document.getElementById('nb-open').textContent=isAdmin ? bugs.filter(b=>b.status==='open').length : open;
+  document.getElementById('nb-open').textContent=bugs.filter(b=>b.status==='open').length;
 
-  renderWorkload();
+  // Simplify: hide team workload for non-admin
+  const workloadCard = document.querySelector('.card.style-class-23');
+  workloadCard.style.display = role === 'admin' ? 'block' : 'none';
 
-  // Your bugs section
+  // Recent bugs with image if available
+async function quickSubmitBug() {
+  const title = document.getElementById('q-title').value.trim();
+  const desc = document.getElementById('q-desc').value.trim();
+  const proj = document.getElementById('q-proj').value;
+  const imageUrl = await uploadImage(document.getElementById('q-image'));
+  if (!title || !desc || !proj) {
+    toast('Title, description and project required');
+    return;
+  }
+  const payload = { title, description: desc, projectId: proj, imageUrl };
+  const { ok, data } = await apiFetch('/bugs', { method: 'POST', body: JSON.stringify(payload) });
+  if (ok) {
+    await loadBugsFromAPI();
+    toast('Quick bug reported!');
+    clearQuickForm();
+  } else {
+    toast('Failed to report bug');
+  }
+}
+
+function clearQuickForm() {
+  ['q-title', 'q-desc', 'q-proj'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('q-image-preview').innerHTML = '';
+}
+
   var userRecent = userBugs.slice(0,6);
   var tbody=document.getElementById('recent-tbody');
   tbody.innerHTML=userRecent.map(b=>`
     <tr style="cursor:pointer" onclick="openBugDetail('${b.id}')">
       <td style="font-family:monospace;font-size:11.5px;color:var(--mut)">${b.id}</td>
-      <td style="max-width:180px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${b.title}</div></td>
+      <td style="max-width:150px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${b.title}</div>
+        ${b.imageUrl ? `<img src="${API + b.imageUrl}" style="width:24px;height:24px;border-radius:4px;margin-top:2px;object-fit:cover" />` : ''}
+      </td>
       <td>${sevBadge(b.sev)}</td>
       <td>${statusBadge(b.status)}</td>
       <td style="font-size:12px">${b.assignee||'—'}</td>
@@ -368,7 +415,9 @@ function renderBugs(){
   document.getElementById('bugs-tbody').innerHTML=list.map(b=>`
     <tr style="cursor:pointer" onclick="openBugDetail('${b.id}')">
       <td style="font-family:monospace;font-size:11.5px;color:var(--mut)">${b.id}</td>
-      <td style="max-width:180px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500" title="${b.title}">${b.title}</div></td>
+      <td style="max-width:140px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500" title="${b.title}">${b.title}</div>
+        ${b.imageUrl ? `<img src="${API + b.imageUrl}" style="width:20px;height:20px;border-radius:3px;margin-top:2px;object-fit:cover;display:block" />` : ''}
+      </td>
       <td style="font-size:12px;color:var(--mut)">${b.project||'—'}</td>
       <td>${sevBadge(b.sev)}</td>
       <td>${statusBadge(b.status)}</td>
@@ -528,6 +577,38 @@ function renderAI(d){
   document.getElementById('ai-preview').style.display='block';
 }
 
+async function uploadImage(fileInput) {
+  if (!fileInput.files[0]) return null;
+  const formData = new FormData();
+  formData.append('image', fileInput.files[0]);
+  try {
+    const r = await fetch(API + '/bugs/upload', { method: 'POST', body: formData });
+    if (r.ok) {
+      const d = await r.json();
+      return d.imageUrl;
+    }
+  } catch (e) {}
+  return null;
+}
+
+async function previewImage(input) {
+  const preview = document.getElementById('f-image-preview');
+  preview.innerHTML = '';
+  if (input.files[0]) {
+    const url = URL.createObjectURL(input.files[0]);
+    preview.innerHTML = `<img src="${url}" class="image-preview" />`;
+  }
+}
+
+async function previewQuickImage(input) {
+  const preview = document.getElementById('q-image-preview');
+  preview.innerHTML = '';
+  if (input.files[0]) {
+    const url = URL.createObjectURL(input.files[0]);
+    preview.innerHTML = `<img src="${url}" class="image-preview" />`;
+  }
+}
+
 async function submitBug(){
   if(isSubmittingBug) return;
   var proj  =document.getElementById('f-bugproj').value;
@@ -536,6 +617,7 @@ async function submitBug(){
   var env   =document.getElementById('f-env').value;
   var comp  =document.getElementById('f-comp').value.trim();
   var asgn  =document.getElementById('f-assignee').value;
+  const imageUrl = await uploadImage(document.getElementById('f-image'));
   if(!proj||!title||!desc){toast('Project, title and description are required');return;}
 
   isSubmittingBug = true;
@@ -544,6 +626,7 @@ async function submitBug(){
     // Try real API
     var payload={title,description:desc,environment:env,component:comp,projectId:proj};
     if(asgn) payload.assignee=asgn;
+    if (imageUrl) payload.imageUrl = imageUrl;
     var {ok,data}=await apiFetch('/bugs',{method:'POST',body:JSON.stringify(payload)});
 
     if(ok&&data.bug){
