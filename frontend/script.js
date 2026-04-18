@@ -309,24 +309,24 @@ function renderDashboard(){
 }
 
 function renderWorkload(){
-  var devs=users.filter(u=>u.role==='developer');
+  var team=getAssignableUsers();
   var colors=['#4f46e5','#0369a1','#16a34a','#d97706','#dc2626'];
-  var html=devs.map((d,i)=>{
-    var total=bugs.filter(b=>b.assignee===d.name).length;
-    var open =bugs.filter(b=>b.assignee===d.name&&b.status==='open').length;
+  var html=team.map((member,i)=>{
+    var total=bugs.filter(b=>b.assignee===member.name).length;
+    var open =bugs.filter(b=>b.assignee===member.name&&b.status==='open').length;
     var pct  =bugs.length>0?Math.round((total/bugs.length)*100):0;
     return `<div class="workload-row">
-      <div class="av" style="width:28px;height:28px;background:#f1f5f9;color:${colors[i%5]}">${d.name.charAt(0)}</div>
+      <div class="av" style="width:28px;height:28px;background:#f1f5f9;color:${colors[i%5]}">${member.name.charAt(0)}</div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px">
-          <span style="font-weight:500">${d.name}</span>
+          <span style="font-weight:500">${member.name} <span style="color:var(--mut);font-weight:400">(${member.role})</span></span>
           <span style="color:var(--mut)">${total} bugs · ${open} open</span>
         </div>
         <div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${colors[i%5]}"></div></div>
       </div>
     </div>`;
   }).join('');
-  document.getElementById('workload-list').innerHTML=html||'<p style="color:var(--mut);font-size:13px">No developer data</p>';
+  document.getElementById('workload-list').innerHTML=html||'<p style="color:var(--mut);font-size:13px">No active employee data</p>';
 }
 
 // ═══════════════════════════════════════════════
