@@ -20,15 +20,25 @@
   <div class="style-class-4">Welcome back</div>
   <div class="style-class-5">Sign in to manage bugs with AI</div>
   <div class="demo-chips">
-    <button type="button" id="demo-admin" class="demo-chip" onclick="fillDemo('admin@bugtracker.com','Admin@123456')">Admin</button>
-    <button type="button" id="demo-developer" class="demo-chip" onclick="fillDemo('dev@bugtracker.com','Dev@123456')">Developer</button>
-    <button type="button" id="demo-tester" class="demo-chip" onclick="fillDemo('tester@bugtracker.com','Tester@123456')">Tester</button>
+    <button type="button" id="demo-admin" class="demo-chip" onclick="fillDemo('admin.user@gmail.com','OrgPass2024')">Admin</button>
+    <button type="button" id="demo-developer" class="demo-chip" onclick="fillDemo('arjun.sharma@gmail.com','OrgPass2024')">Developer</button>
+    <button type="button" id="demo-tester" class="demo-chip" onclick="fillDemo('meena.raj@gmail.com','OrgPass2024')">Tester</button>
   </div>
+  <div class="toggle-reg" onclick="toggleRegForm()">Don't have an account? <span style="color:var(--pri);font-weight:600;cursor:pointer">Create one</span></div>
   <form id="login-form" class="form-grid">
-    <div class="form-group"><label>Email address</label><input id="l-email" type="email" value="admin@bugtracker.com" placeholder="you@company.com"/></div>
-    <div class="form-group"><label>Password</label><input id="l-pass" type="password" value="Admin@123456" placeholder="••••••••"/></div>
+    <div class="form-group"><label>Email address (name@gmail.com)</label><input id="l-email" type="email" placeholder="name@gmail.com"/></div>
+    <div class="form-group"><label>Password</label><input id="l-pass" type="password" placeholder="••••••••"/></div>
     <button type="submit" id="login-btn" class="btn pri style-class-6">Sign in</button>
   </form>
+  <div id="reg-form" style="display:none" class="form-grid">
+    <div class="form-group"><label>Full Name *</label><input id="r-name" placeholder="John Doe" required/></div>
+    <div class="form-group"><label>Email * (name@gmail.com)</label><input id="r-email" type="email" placeholder="john.doe@gmail.com" required/></div>
+    <div class="form-group"><label>Password * (min 6)</label><input id="r-pass" type="password" placeholder="••••••••" required/></div>
+    <div class="form-group"><label>Confirm Password *</label><input id="r-pass2" type="password" placeholder="••••••••" required/></div>
+    <div class="form-group"><label>Role</label><select id="r-role"><option value="tester">Tester</option><option value="developer">Developer</option></select></div>
+    <button type="button" class="btn pri" onclick="doRegister()">Create Account</button>
+    <div class="toggle-reg" onclick="toggleRegForm()" style="text-align:center;margin-top:10px">Have account? <span style="color:var(--pri);font-weight:600;cursor:pointer">Sign in</span></div>
+  </div>
   <div class="style-class-7">Demo: click any role above to prefill</div>
 </div>
 </div>
@@ -101,7 +111,7 @@
 
       <!-- DASHBOARD -->
       <div id="pg-dashboard" class="page active">
-        <div class="page-hdr"><h2>Dashboard</h2><p>AI-powered bug tracking overview</p></div>
+<h2>Your Dashboard</h2><p>AI-powered overview of your bugs</p>
         <div class="metric-grid">
           <div class="mc"><div class="mc-lbl">Total Bugs</div><div class="mc-val" id="m-total">47</div><div class="mc-sub">All projects</div></div>
           <div class="mc"><div class="mc-lbl">Open</div><div class="mc-val style-class-13" id="m-open">12</div><div class="mc-sub">Needs attention</div></div>

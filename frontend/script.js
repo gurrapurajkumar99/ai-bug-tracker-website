@@ -63,7 +63,10 @@ var isSubmittingBug = false;
 // ═══════════════════════════════════════════════
 // AUTH
 // ═══════════════════════════════════════════════
-function fillDemo(e,p){ document.getElementById('l-email').value=e; document.getElementById('l-pass').value=p; }
+function fillDemo(e,p){ 
+  if(document.getElementById('reg-form').style.display !== 'none') toggleRegForm();
+  document.getElementById('l-email').value=e; document.getElementById('l-pass').value=p; 
+}
 
 function bindLoginActions(){
   var adminBtn = document.getElementById('demo-admin');
@@ -74,9 +77,9 @@ function bindLoginActions(){
   var emailInput = document.getElementById('l-email');
   var passwordInput = document.getElementById('l-pass');
 
-  if(adminBtn) adminBtn.addEventListener('click', function(){ fillDemo('admin@bugtracker.com','Admin@123456'); });
-  if(developerBtn) developerBtn.addEventListener('click', function(){ fillDemo('dev@bugtracker.com','Dev@123456'); });
-  if(testerBtn) testerBtn.addEventListener('click', function(){ fillDemo('tester@bugtracker.com','Tester@123456'); });
+  if(adminBtn) adminBtn.addEventListener('click', function(){ fillDemo('admin.user@gmail.com','OrgPass2024'); });
+  if(developerBtn) developerBtn.addEventListener('click', function(){ fillDemo('arjun.sharma@gmail.com','OrgPass2024'); });
+  if(testerBtn) testerBtn.addEventListener('click', function(){ fillDemo('meena.raj@gmail.com','OrgPass2024'); });
   if(loginBtn) loginBtn.addEventListener('click', function(event){ event.preventDefault(); doLogin(); });
   if(loginForm) loginForm.addEventListener('submit', function(event){ event.preventDefault(); doLogin(); });
   [emailInput, passwordInput].forEach(function(input){
@@ -115,11 +118,11 @@ async function doLogin(){
 
   // Fallback to demo login
   var demo = {
-    'admin@bugtracker.com'  :{name:'Admin User',  role:'admin',    email},
-    'dev@bugtracker.com'    :{name:'Arjun Sharma', role:'developer',email},
-    'priya@bugtracker.com'  :{name:'Priya Venkat', role:'developer',email},
-    'tester@bugtracker.com' :{name:'Meena Raj',    role:'tester',   email},
-    'karan@bugtracker.com'  :{name:'Karan Das',    role:'developer',email},
+    'admin.user@gmail.com'  :{name:'Admin User',  role:'admin',    email},
+    'arjun.sharma@gmail.com':{name:'Arjun Sharma', role:'developer',email},
+    'priya.venkat@gmail.com':{name:'Priya Venkat', role:'developer',email},
+    'meena.raj@gmail.com'   :{name:'Meena Raj',    role:'tester',   email},
+    'karan.das@gmail.com'   :{name:'Karan Das',    role:'developer',email},
   };
   if(demo[email]){
     currentUser = demo[email];
@@ -285,19 +288,23 @@ function doSearch(q){
 // DASHBOARD
 // ═══════════════════════════════════════════════
 function renderDashboard(){
-  var open=bugs.filter(b=>b.status==='open').length;
-  var ip  =bugs.filter(b=>b.status==='in_progress').length;
-  var res =bugs.filter(b=>b.status==='resolved'||b.status==='closed').length;
-  document.getElementById('m-total').textContent=bugs.length;
+  var isAdmin = currentUser && currentUser.role === 'admin';
+  var userBugs = isAdmin ? bugs : bugs.filter(b => b.assignee === currentUser.name || b.assigneeId === currentUser._id);
+  var open= userBugs.filter(b=>b.status==='open').length;
+  var ip  =userBugs.filter(b=>b.status==='in_progress').length;
+  var res =userBugs.filter(b=>b.status==='resolved'||b.status==='closed').length;
+  document.getElementById('m-total').textContent=userBugs.length;
   document.getElementById('m-open').textContent=open;
   document.getElementById('m-prog').textContent=ip;
   document.getElementById('m-res').textContent=res;
-  document.getElementById('nb-open').textContent=open;
+  document.getElementById('nb-open').textContent=isAdmin ? bugs.filter(b=>b.status==='open').length : open;
 
   renderWorkload();
 
+  // Your bugs section
+  var userRecent = userBugs.slice(0,6);
   var tbody=document.getElementById('recent-tbody');
-  tbody.innerHTML=bugs.slice(0,6).map(b=>`
+  tbody.innerHTML=userRecent.map(b=>`
     <tr style="cursor:pointer" onclick="openBugDetail('${b.id}')">
       <td style="font-family:monospace;font-size:11.5px;color:var(--mut)">${b.id}</td>
       <td style="max-width:180px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${b.title}</div></td>
@@ -774,6 +781,56 @@ function toast(msg){
 if(token && currentUser){
   bootApp();
   document.getElementById('login-wrap').style.display='none';
+}
+
+function toggleRegForm(){
+  var loginForm = document.getElementById('login-form');
+  var regForm = document.getElementById('reg-form');
+  loginForm.style.display = loginForm.style.display === 'none' ? 'block' : 'none';
+  regForm.style.display = regForm.style.display === 'none' ? 'block' : 'none';
+}
+
+async function doRegister(){
+  var name = document.getElementById('r-name').value.trim();
+  var email = document.getElementById('r-email').value.trim();
+  var pass = document.getElementById('r-pass').value;
+  var pass2 = document.getElementById('r-pass2').value;
+  var role = document.getElementById('r-role').value;
+  if(!name || !email || !pass || pass !== pass2 || pass.length < 6){
+    toast('Please fill all fields correctly. Password min 6 chars, match confirm.');
+    return;
+  }
+  if(!email.endsWith('@gmail.com')){
+    toast('Organization policy: Use Gmail (name@gmail.com)');
+    return;
+  }
+  try {
+    var r = await fetch(API + '/users', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name, email, password: pass, role, department: 'Engineering'})
+    });
+    var d = await r.json();
+    if(r.ok){
+      // Auto login
+      token = makeToken({ _id: d.user._id, email });
+      currentUser = {_id: d.user._id, name, email, role};
+      localStorage.setItem('bt_token', token);
+      localStorage.setItem('bt_user', JSON.stringify(currentUser));
+      bootApp();
+      toast('Account created and logged in: Welcome ' + name + '!');
+      toggleRegForm();
+      return;
+    } else {
+      toast(d.message || 'Registration failed');
+    }
+  } catch(e){
+    toast('Backend not available. Demo mode only.');
+  }
+}
+
+function makeToken(user) {
+  return Buffer.from(`${user._id}:${user.email}`).toString('base64url');
 }
 
 bindLoginActions();
