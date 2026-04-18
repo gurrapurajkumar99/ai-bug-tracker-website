@@ -182,9 +182,7 @@ async function loadUsersFromAPI(){
   var {ok,data} = await apiFetch('/users');
   if(ok && data.users){
     users = data.users.map(u=>({id:u._id,name:u.name,email:u.email,role:u.role,dept:u.department||'',active:u.isActive}));
-    renderAdmin();
-    updateAssigneeDropdowns();
-    renderWorkload();
+    refreshPeopleViews();
   }
 }
 
@@ -226,11 +224,33 @@ async function loadProjectsFromAPI(){
   }
 }
 
+function getAssignableUsers(){
+  return users
+    .filter(u=>u.active)
+    .slice()
+    .sort((a,b)=>a.name.localeCompare(b.name));
+}
+
+function userOptionLabel(user){
+  return `${user.name} (${user.role})`;
+}
+
 function updateAssigneeDropdowns(){
-  var activeUsers = users.filter(u=>u.active);
-  var opts = '<option value="">Auto-assign</option>' + activeUsers.map(u=>`<option value="${u.id}">${u.name} (${u.role})</option>`).join('');
+  var opts = '<option value="">Auto-assign</option>' + getAssignableUsers().map(u=>`<option value="${u.id}">${userOptionLabel(u)}</option>`).join('');
   var sel = document.getElementById('f-assignee');
   if(sel) sel.innerHTML = opts;
+}
+
+function refreshPeopleViews(){
+  renderAdmin();
+  updateAssigneeDropdowns();
+  renderWorkload();
+  renderBugs();
+
+  if(currentBugDetailId){
+    var bug = bugs.find(b=>b.id===currentBugDetailId);
+    if(bug) renderAssignableOptions(bug);
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -281,7 +301,7 @@ function renderDashboard(){
       <td style="max-width:180px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${b.title}</div></td>
       <td>${sevBadge(b.sev)}</td>
       <td>${statusBadge(b.status)}</td>
-      <td style="font-size:12px">${(b.assignee||'—').split(' ')[0]}</td>
+      <td style="font-size:12px">${b.assignee||'—'}</td>
       <td><div style="display:flex;align-items:center;gap:5px"><div class="pulse"></div><span style="font-size:12px;font-weight:600;color:#5b21b6">${Math.round(b.conf*100)}%</span></div></td>
     </tr>`).join('');
 }
@@ -343,7 +363,7 @@ function renderBugs(){
       <td style="font-size:12px;color:var(--mut)">${b.project||'—'}</td>
       <td>${sevBadge(b.sev)}</td>
       <td>${statusBadge(b.status)}</td>
-      <td style="font-size:12px">${(b.assignee||'—').split(' ')[0]}</td>
+      <td style="font-size:12px">${b.assignee||'—'}</td>
       <td style="font-size:11.5px;color:var(--mut)">${b.reported||''}</td>
       <td>
         <select class="status-sel" onclick="event.stopPropagation()" onchange="changeBugStatus('${b.id}',this.value)">
@@ -354,20 +374,22 @@ function renderBugs(){
 }
 
 function getSuggestedAssignee(){
-  var devs = users.filter(u=>u.role==='developer'&&u.active);
-  if(!devs.length) return null;
-  return devs.map(dev=>({dev,openCount:bugs.filter(b=>b.assignee===dev.name&&['open','in_progress'].includes(b.status)).length}))
-             .sort((a,b)=>a.openCount-b.openCount||a.dev.name.localeCompare(b.dev.name))[0].dev;
+  var assignable = getAssignableUsers();
+  if(!assignable.length) return null;
+  return assignable.map(user=>({
+    user,
+    openCount:bugs.filter(b=>b.assignee===user.name&&['open','in_progress'].includes(b.status)).length
+  })).sort((a,b)=>a.openCount-b.openCount||a.user.name.localeCompare(b.user.name))[0].user;
 }
 
 function renderAssignableOptions(bug){
   var select=document.getElementById('detail-assignee');
   if(!select) return;
-  var options = users.filter(u=>u.role==='developer'&&u.active)
-    .map(u=>`<option value="${u.id}" ${(bug.assigneeId&&bug.assigneeId===u.id)||bug.assignee===u.name?'selected':''}>${u.name} (${u.role})</option>`).join('');
+  var options = getAssignableUsers()
+    .map(u=>`<option value="${u.id}" ${(bug.assigneeId&&bug.assigneeId===u.id)||bug.assignee===u.name?'selected':''}>${userOptionLabel(u)}</option>`).join('');
   select.innerHTML = `<option value="">Unassigned</option>` + options;
   var suggestion = getSuggestedAssignee();
-  document.getElementById('detail-suggested').textContent = suggestion ? suggestion.name : 'No available developer';
+  document.getElementById('detail-suggested').textContent = suggestion ? suggestion.name : 'No active users';
 }
 
 function openBugDetail(bugId){
@@ -614,9 +636,7 @@ async function addUser(){
     // demo fallback
     if(users.find(u=>u.email===email)){toast('Email already exists');return;}
     users.push({id:'u'+Date.now(),name,email,role,dept,active:true});
-    renderAdmin();
-    updateAssigneeDropdowns();
-    renderWorkload();
+    refreshPeopleViews();
     toast('User added (Demo — connect backend to persist): '+name+' ['+role+']');
   }
 
@@ -625,8 +645,7 @@ async function addUser(){
   document.getElementById('a-role').value='tester';
 
   if(ok&&data.user){
-    renderAdmin();
-    updateAssigneeDropdowns();
+    refreshPeopleViews();
   }
 }
 
@@ -639,9 +658,7 @@ async function toggleUser(uid){
   if(ok&&data.user){ u.active=data.user.isActive; }
   else { u.active=!u.active; }
 
-  renderAdmin();
-  updateAssigneeDropdowns();
-  renderWorkload();
+  refreshPeopleViews();
   toast('User '+(u.active?'activated':'deactivated')+': '+u.name);
 }
 
@@ -653,8 +670,7 @@ async function deleteUser(uid){
 
   var {ok}=await apiFetch('/users/'+uid,{method:'DELETE'});
   users=users.filter(x=>x.id!==uid);
-  renderAdmin();
-  updateAssigneeDropdowns();
+  refreshPeopleViews();
   toast(ok?'User deleted from database: '+u.name:'User removed (Demo): '+u.name);
 }
 
