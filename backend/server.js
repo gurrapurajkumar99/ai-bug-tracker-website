@@ -11,6 +11,24 @@ const DATA_DIR = path.join(__dirname, 'data');
 const USER_FILE = path.join(DATA_DIR, 'users.json');
 const PROJECT_FILE = path.join(DATA_DIR, 'projects.json');
 const BUG_FILE = path.join(DATA_DIR, 'bugs.json');
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+  || process.env.SUPABASE_SECRET_KEY
+  || process.env.SUPABASE_ANON_KEY
+  || process.env.SUPABASE_PUBLISHABLE_KEY
+  || '';
+const USE_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_KEY);
+const FILE_TABLES = {
+  [USER_FILE]: 'users',
+  [PROJECT_FILE]: 'projects',
+  [BUG_FILE]: 'bugs'
+};
+const SUPABASE_REST_URL = SUPABASE_URL ? `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1` : '';
+const SUPABASE_STRICT = process.env.SUPABASE_STRICT === 'true';
+const POSTGRES_URL = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL || '';
+let supabaseAvailable = false;
+let postgresAvailable = false;
+let pgPool = null;
 
 const seedUsers = [
   {
@@ -210,8 +228,35 @@ async function ensureFile(filePath, seedValue) {
   }
 }
 
-async function readJson(filePath, fallback) {
-  await dataReady;
+function tableForFile(filePath) {
+  return FILE_TABLES[filePath];
+}
+
+async function supabaseRequest(table, query = '', options = {}) {
+  const response = await fetch(`${SUPABASE_REST_URL}/${table}${query}`, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+      ...(options.headers || {})
+    }
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Supabase ${table} ${response.status}: ${body}`);
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  return response.json();
+}
+
+async function readLocalJson(filePath, fallback) {
   try {
     const raw = await fs.readFile(filePath, 'utf8');
     return JSON.parse(raw);
@@ -220,9 +265,186 @@ async function readJson(filePath, fallback) {
   }
 }
 
+async function writeLocalJson(filePath, value) {
+  await fs.writeFile(filePath, JSON.stringify(value, null, 2));
+}
+
+async function readSupabaseRecords(table, fallback) {
+  const rows = await supabaseRequest(table, '?select=data,created_at&order=created_at.desc');
+  if (!Array.isArray(rows)) {
+    return fallback;
+  }
+
+  return rows.map((row) => row.data).filter(Boolean);
+}
+
+async function writeSupabaseRecords(table, records) {
+  const safeRecords = Array.isArray(records) ? records.filter((record) => record && record._id) : [];
+
+  if (safeRecords.length) {
+    await supabaseRequest(table, '?on_conflict=_id', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(safeRecords.map((record) => ({
+        _id: record._id,
+        data: record,
+        created_at: record.createdAt || new Date().toISOString()
+      })))
+    });
+  }
+
+  const ids = safeRecords.map((record) => record._id).join(',');
+  const deleteQuery = safeRecords.length ? `?_id=not.in.(${ids})` : '?_id=neq.__keep_no_rows__';
+  await supabaseRequest(table, deleteQuery, {
+    method: 'DELETE',
+    headers: { Prefer: 'return=minimal' }
+  });
+}
+
+async function seedSupabaseTable(table, seedValue) {
+  const rows = await supabaseRequest(table, '?select=_id&limit=1');
+  if (Array.isArray(rows) && rows.length === 0) {
+    await writeSupabaseRecords(table, seedValue);
+  }
+}
+
+function getPgPool() {
+  if (!POSTGRES_URL) {
+    return null;
+  }
+
+  if (!pgPool) {
+    const { Pool } = require('pg');
+    const connectionUrl = new URL(POSTGRES_URL);
+    connectionUrl.searchParams.delete('sslmode');
+    pgPool = new Pool({
+      connectionString: connectionUrl.toString(),
+      ssl: { rejectUnauthorized: false },
+      max: 1
+    });
+  }
+
+  return pgPool;
+}
+
+async function ensurePostgresTable(table) {
+  await getPgPool().query(`
+    create table if not exists public.${table} (
+      _id text primary key,
+      data jsonb not null,
+      created_at timestamptz not null default now()
+    )
+  `);
+}
+
+async function readPostgresRecords(table, fallback) {
+  const result = await getPgPool().query(`select data from public.${table} order by created_at desc`);
+  if (!Array.isArray(result.rows)) {
+    return fallback;
+  }
+
+  return result.rows.map((row) => row.data).filter(Boolean);
+}
+
+async function writePostgresRecords(table, records) {
+  const safeRecords = Array.isArray(records) ? records.filter((record) => record && record._id) : [];
+  const client = await getPgPool().connect();
+
+  try {
+    await client.query('begin');
+
+    for (const record of safeRecords) {
+      await client.query(
+        `insert into public.${table} (_id, data, created_at)
+         values ($1, $2, $3)
+         on conflict (_id) do update
+         set data = excluded.data,
+             created_at = excluded.created_at`,
+        [record._id, record, record.createdAt || new Date().toISOString()]
+      );
+    }
+
+    if (safeRecords.length) {
+      await client.query(`delete from public.${table} where not (_id = any($1::text[]))`, [safeRecords.map((record) => record._id)]);
+    } else {
+      await client.query(`delete from public.${table}`);
+    }
+
+    await client.query('commit');
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function seedPostgresTable(table, seedValue) {
+  await ensurePostgresTable(table);
+  const result = await getPgPool().query(`select _id from public.${table} limit 1`);
+  if (result.rows.length === 0) {
+    await writePostgresRecords(table, seedValue);
+  }
+}
+
+async function readJson(filePath, fallback) {
+  await dataReady;
+  const table = tableForFile(filePath);
+
+  if (postgresAvailable && table) {
+    try {
+      return await readPostgresRecords(table, fallback);
+    } catch (error) {
+      console.error(error.message);
+      if (SUPABASE_STRICT) {
+        throw error;
+      }
+    }
+  }
+
+  if (supabaseAvailable && table) {
+    try {
+      return await readSupabaseRecords(table, fallback);
+    } catch (error) {
+      console.error(error.message);
+      if (SUPABASE_STRICT) {
+        throw error;
+      }
+    }
+  }
+
+  return readLocalJson(filePath, fallback);
+}
+
 async function writeJson(filePath, value) {
   await dataReady;
-  await fs.writeFile(filePath, JSON.stringify(value, null, 2));
+  const table = tableForFile(filePath);
+
+  if (postgresAvailable && table) {
+    try {
+      await writePostgresRecords(table, value);
+      return;
+    } catch (error) {
+      console.error(error.message);
+      if (SUPABASE_STRICT) {
+        throw error;
+      }
+    }
+  }
+
+  if (supabaseAvailable && table) {
+    try {
+      await writeSupabaseRecords(table, value);
+      return;
+    } catch (error) {
+      console.error(error.message);
+      if (SUPABASE_STRICT) {
+        throw error;
+      }
+    }
+  }
+
+  await writeLocalJson(filePath, value);
 }
 
 async function ensureData() {
@@ -252,13 +474,67 @@ async function ensureData() {
   await ensureFile(USER_FILE, seedUsers);
   await ensureFile(PROJECT_FILE, seedProjects);
   await ensureFile(BUG_FILE, seedBugs);
+
+  if (POSTGRES_URL) {
+    try {
+      await seedPostgresTable('users', seedUsers);
+      await seedPostgresTable('projects', seedProjects);
+      await seedPostgresTable('bugs', seedBugs);
+      postgresAvailable = true;
+      console.log('Supabase Postgres storage connected');
+      return;
+    } catch (error) {
+      postgresAvailable = false;
+      console.error(error.message);
+      if (SUPABASE_STRICT) {
+        throw error;
+      }
+      console.error('Falling back to Supabase REST or local JSON storage.');
+    }
+  }
+
+  if (USE_SUPABASE) {
+    try {
+      await seedSupabaseTable('users', seedUsers);
+      await seedSupabaseTable('projects', seedProjects);
+      await seedSupabaseTable('bugs', seedBugs);
+      supabaseAvailable = true;
+      console.log('Supabase storage connected');
+    } catch (error) {
+      supabaseAvailable = false;
+      console.error(error.message);
+      if (SUPABASE_STRICT) {
+        throw error;
+      }
+      console.error('Falling back to local JSON storage. Run supabase-schema.sql in Supabase if tables are missing.');
+    }
+  }
 }
 
 app.use(express.json());
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
 app.use(express.static(FRONTEND_DIR));
 
 app.get('/api/health', async (_req, res) => {
-  res.json({ ok: true, storage: 'json', realtime: true });
+  res.json({
+    ok: true,
+    storage: postgresAvailable ? 'postgres' : supabaseAvailable ? 'supabase' : 'json',
+    supabaseConfigured: USE_SUPABASE,
+    supabaseAvailable,
+    postgresConfigured: Boolean(POSTGRES_URL),
+    postgresAvailable,
+    realtime: true
+  });
 });
 
 app.post('/api/auth/login', async (req, res) => {
@@ -451,6 +727,34 @@ app.patch('/api/bugs/:id/status', async (req, res) => {
   }
 
   bug.status = req.body.status;
+  bug.updatedAt = new Date().toISOString();
+  await writeJson(BUG_FILE, bugs);
+  res.json({ bug });
+});
+
+app.patch('/api/bugs/:id/assignee', async (req, res) => {
+  const bugs = await readJson(BUG_FILE, []);
+  const users = await readJson(USER_FILE, seedUsers);
+  const bug = bugs.find((entry) => entry._id === req.params.id);
+  const { assigneeId } = req.body || {};
+
+  if (!bug) {
+    return res.status(404).json({ message: 'Bug not found' });
+  }
+
+  if (!assigneeId) {
+    bug.assignee = null;
+    bug.updatedAt = new Date().toISOString();
+    await writeJson(BUG_FILE, bugs);
+    return res.json({ bug });
+  }
+
+  const user = users.find((entry) => entry._id === assigneeId && entry.isActive);
+  if (!user) {
+    return res.status(404).json({ message: 'Assignee not found' });
+  }
+
+  bug.assignee = { _id: user._id, name: user.name, email: user.email };
   bug.updatedAt = new Date().toISOString();
   await writeJson(BUG_FILE, bugs);
   res.json({ bug });

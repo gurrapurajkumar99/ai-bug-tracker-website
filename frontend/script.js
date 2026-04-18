@@ -1,7 +1,25 @@
 // ═══════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════
-var API = window.location.protocol === 'file:' ? 'http://localhost:5001/api' : '/api';
+function getApiBase(){
+  if(window.BUGTRACKER_API_URL){
+    return window.BUGTRACKER_API_URL.replace(/\/$/, '');
+  }
+
+  if(window.location.protocol === 'file:'){
+    return 'http://localhost:5001/api';
+  }
+
+  var isBackendOrigin = window.location.port === '5001';
+  var isSeparateLocalFrontend = window.location.port && !isBackendOrigin;
+  if(isSeparateLocalFrontend){
+    return window.location.protocol + '//' + window.location.hostname + ':5001/api';
+  }
+
+  return '/api';
+}
+
+var API = getApiBase();
 var token = localStorage.getItem('bt_token') || '';
 var currentUser = JSON.parse(localStorage.getItem('bt_user') || 'null');
 
@@ -39,6 +57,8 @@ var aiTimer = null;
 var currentBugDetailId = null;
 var chartsBuilt = false;
 var analyticsBuilt = false;
+var isLoggingIn = false;
+var isSubmittingBug = false;
 
 // ═══════════════════════════════════════════════
 // AUTH
@@ -71,9 +91,11 @@ function bindLoginActions(){
 }
 
 async function doLogin(){
+  if(isLoggingIn) return;
   var email=document.getElementById('l-email').value.trim();
   var pass =document.getElementById('l-pass').value.trim();
   if(!email||!pass){toast('Enter email and password');return;}
+  isLoggingIn = true;
 
   // Try real API first
   try {
@@ -86,6 +108,7 @@ async function doLogin(){
       localStorage.setItem('bt_user', JSON.stringify(currentUser));
       bootApp();
       toast('Welcome, '+d.user.name+'!');
+      isLoggingIn = false;
       return;
     }
   } catch(_){}
@@ -108,6 +131,7 @@ async function doLogin(){
   } else {
     toast('Invalid credentials. Use a demo account above.');
   }
+  isLoggingIn = false;
 }
 
 function doLogout(){
@@ -176,6 +200,7 @@ async function loadBugsFromAPI(){
       sev: b.severity,
       status: b.status,
       assignee: b.assignee?.name||'—',
+      assigneeId: b.assignee?._id||'',
       reported: b.createdAt?.slice(0,10)||'',
       environment: b.environment||'Production',
       component: b.component||'—',
@@ -339,7 +364,7 @@ function renderAssignableOptions(bug){
   var select=document.getElementById('detail-assignee');
   if(!select) return;
   var options = users.filter(u=>u.role==='developer'&&u.active)
-    .map(u=>`<option value="${u.name}" ${bug.assignee===u.name?'selected':''}>${u.name} (${u.role})</option>`).join('');
+    .map(u=>`<option value="${u.id}" ${(bug.assigneeId&&bug.assigneeId===u.id)||bug.assignee===u.name?'selected':''}>${u.name} (${u.role})</option>`).join('');
   select.innerHTML = `<option value="">Unassigned</option>` + options;
   var suggestion = getSuggestedAssignee();
   document.getElementById('detail-suggested').textContent = suggestion ? suggestion.name : 'No available developer';
@@ -370,10 +395,26 @@ function closeBugDetail(event){
   currentBugDetailId = null;
 }
 
-function updateBugAssignee(bugId, assigneeName){
+async function updateBugAssignee(bugId, assigneeId){
   var bug = bugs.find(b=>b.id===bugId);
   if(!bug) return;
-  bug.assignee = assigneeName || 'Unassigned';
+  var previousAssignee = bug.assignee;
+  var previousAssigneeId = bug.assigneeId;
+  var user = users.find(u=>u.id===assigneeId);
+  bug.assignee = user ? user.name : 'Unassigned';
+  bug.assigneeId = assigneeId || '';
+
+  if(bug._id){
+    var {ok} = await apiFetch('/bugs/'+bug._id+'/assignee',{method:'PATCH',body:JSON.stringify({assigneeId:assigneeId||null})});
+    if(!ok){
+      bug.assignee = previousAssignee;
+      bug.assigneeId = previousAssigneeId;
+      toast('Failed to update assignee');
+      openBugDetail(bugId);
+      return;
+    }
+  }
+
   toast('Assigned to '+(bug.assignee || 'Unassigned'));
   renderBugs();
   renderDashboard();
@@ -455,6 +496,7 @@ function renderAI(d){
 }
 
 async function submitBug(){
+  if(isSubmittingBug) return;
   var proj  =document.getElementById('f-bugproj').value;
   var title =document.getElementById('f-title').value.trim();
   var desc  =document.getElementById('f-desc').value.trim();
@@ -463,36 +505,35 @@ async function submitBug(){
   var asgn  =document.getElementById('f-assignee').value;
   if(!proj||!title||!desc){toast('Project, title and description are required');return;}
 
-  // Try real API
-  var payload={title,description:desc,environment:env,component:comp,projectId:proj};
-  if(asgn) payload.assignee=asgn;
-  var {ok,data}=await apiFetch('/bugs',{method:'POST',body:JSON.stringify(payload)});
+  isSubmittingBug = true;
 
-  if(ok&&data.bug){
-    var b=data.bug;
-    bugs.unshift({
-      id:b._id?.slice(-6).toUpperCase(),_id:b._id,
-      title:b.title,project:b.project?.name||proj,
-      sev:b.severity,status:b.status,
-      assignee:b.assignee?.name||'—',
-      reported:new Date().toISOString().slice(0,10),
-      conf:b.aiConfidenceScore||0.5,rank:b.priorityRank||50,
-    });
-    toast('Bug reported! AI severity: '+(b.severity||'?').toUpperCase());
-  } else {
-    // demo fallback
-    var ai=localAI(title+' '+desc);
-    var newId='BUG-'+String(bugs.length+1).padStart(3,'0');
-    var projName=projects.find(p=>p.id===proj)?.name||proj;
-    var assigneeName=asgn?users.find(u=>u.id===asgn)?.name||'—':'—';
-    bugs.unshift({id:newId,title,project:projName,sev:ai.severity,status:'open',assignee:assigneeName,reported:new Date().toISOString().slice(0,10),conf:ai.confidence,rank:ai.priority_rank});
-    toast('Bug '+newId+' created (Demo) — AI: '+ai.severity.toUpperCase());
+  try {
+    // Try real API
+    var payload={title,description:desc,environment:env,component:comp,projectId:proj};
+    if(asgn) payload.assignee=asgn;
+    var {ok,data}=await apiFetch('/bugs',{method:'POST',body:JSON.stringify(payload)});
+
+    if(ok&&data.bug){
+      var b=data.bug;
+      await loadBugsFromAPI();
+      toast('Bug reported! AI severity: '+(b.severity||'?').toUpperCase());
+    } else {
+      // demo fallback
+      var ai=localAI(title+' '+desc);
+      var newId='BUG-'+String(bugs.length+1).padStart(3,'0');
+      var projName=projects.find(p=>p.id===proj)?.name||proj;
+      var assigneeName=asgn?users.find(u=>u.id===asgn)?.name||'—':'—';
+      bugs.unshift({id:newId,title,project:projName,sev:ai.severity,status:'open',assignee:assigneeName,reported:new Date().toISOString().slice(0,10),conf:ai.confidence,rank:ai.priority_rank});
+      toast((data.message||'Backend not reachable')+'. Bug shown locally only.');
+    }
+
+    renderDashboard();
+    document.getElementById('an-preds').textContent=bugs.length;
+    clearBugForm();
+    nav('bugs',null);
+  } finally {
+    isSubmittingBug = false;
   }
-
-  renderDashboard();
-  document.getElementById('an-preds').textContent=bugs.length;
-  clearBugForm();
-  nav('bugs',null);
 }
 
 function clearBugForm(){
